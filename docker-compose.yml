@@ -1,0 +1,12 @@
+services:
+  bot:
+    build: .
+    volumes:
+      - ./config:/app/config
+    restart: unless-stopped
+    environment:
+      - BOT_TOKEN=${BOT_TOKEN}
+      - ADMIN_IDS=${ADMIN_IDS}
+      - LOG_LEVEL=${LOG_LEVEL:-INFO}
+      - CONFIG_PATH=${CONFIG_PATH:-./config/config.json}
+      - STATE_PATH=${STATE_PATH:-./config/state.json}

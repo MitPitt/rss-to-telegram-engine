@@ -1,0 +1,21 @@
+{% if show_title|default(true) and title %}
+{% set title_bold = title_bold|default(true) %}
+{% set title_underline = title_underline|default(true) %}
+{% set title_as_link = title_as_link|default(true) %}
+{% if title_bold %}<b>{% endif %}
+{% if title_underline %}<u>{% endif %}
+{% if title_as_link %}<a href="{{ link }}">{{ title|unescape_html }}</a>{% else %}{{ title|unescape_html }}{% endif %}
+{% if title_underline %}</u>{% endif %}
+{% if title_bold %}</b>{% endif %}
+
+
+{% endif %}
+{% if show_content|default(true) and content %}
+{% if content_use_blockquote %}
+<blockquote expandable>{{ content }}</blockquote>
+{% else %}
+{{ content }}
+{% endif %}
+
+{% endif %}
+{% if plain_link|default(false) %}via {{ link }}{% else %}via <a href="{{ link }}">{{ feed_name|unescape_html }}</a>{% endif %}{% if show_author and author %} (author: {{ author|unescape_html }}){% endif %}

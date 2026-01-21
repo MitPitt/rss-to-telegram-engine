@@ -1,0 +1,53 @@
+[project]
+name = "rss-telegram-bot"
+version = "0.1.0"
+description = "A modern RSS-to-Telegram bot"
+requires-python = ">=3.10"
+dependencies = [
+    "aiogram>=3.22.0",
+    "aiohttp>=3.9.0",
+    "beautifulsoup4>=4.12.0",
+    "emoji>=2.0.0",
+    "feedparser>=6.0.11",
+    "jinja2>=3.1.0",
+    "lxml>=5.0.0",
+    "pillow>=10.0.0",
+    "pydantic>=2.0.0",
+    "pydantic-settings>=2.11.0",
+    "python-dotenv>=1.0.0",
+    "yt-dlp[default]>=2025.10.22",
+]
+
+[project.optional-dependencies]
+dev = [
+    "pytest>=7.0.0",
+    "pytest-asyncio>=0.21.0",
+    "ruff>=0.1.0",
+]
+
+[build-system]
+requires = ["setuptools>=61.0"]
+build-backend = "setuptools.build_meta"
+
+[tool.setuptools.packages.find]
+include = ["bot*", "core*", "handlers*", "processing*", "utils*"]
+
+[tool.ruff]
+line-length = 150
+indent-width = 4
+
+[tool.ruff.lint]
+select = [
+    "E",    # pycodestyle
+    "F",    # pyflakes
+    "B",    # flake8-bugbear
+    "SIM",  # flake8-simplify
+    "I"     # isort
+]
+ignore = ["E501", "E712"]
+
+[tool.ruff.format]
+quote-style = "double"
+indent-style = "space"
+skip-magic-trailing-comma = false
+line-ending = "auto"
