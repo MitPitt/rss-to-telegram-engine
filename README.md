@@ -14,6 +14,11 @@ This is an RSS-to-Telegram bot. Made mostly for personal use. See [Feed Examples
   - [ytdlp_downloader](#ytdlp_downloader)
 - [Suggestions](#suggestions)
 - [Feed Examples](#feed-examples)
+  - [Reddit](#reddit-short-videos-and-pictures)
+  - [Youtube](#youtube)
+  - [Youtube to mp3](#music-audio-from-youtube)
+  - [Telegram](#telegram)
+  - [Vk](#vkontakte)
 - [Alternatives](#alternatives)
 
 # Features
@@ -244,7 +249,7 @@ Options:
 
 Once you configured a feed you can use `/test` command to test it with the whole processing pipeline (`/test` command will try finding the url somewhere in config).
 
-## Reddit short videos and pictures.
+## Reddit with media
 
 Self-host [trashhalo/reddit-rss](https://github.com/trashhalo/reddit-rss) to get videos and high resolution pirctures in RSS feed.
 
@@ -303,8 +308,11 @@ Will download short videos, and just link the large ones. `show_content": false`
     }
 }
 ```
-<img src="docs/youtube_example_2.png" width="45%">
-<img src="docs/youtube_example_1.png" width="45%">
+
+<p float="left">
+    <img src="docs/youtube_example_2.png" width="45%">
+    <img src="docs/youtube_example_1.png" width="45%">
+</p>
 
 ## Music audio from YouTube
 
@@ -388,9 +396,10 @@ You must self-host [RSS-Bridge/rss-bridge](https://github.com/RSS-Bridge/rss-bri
 Using `"content_use_blockquote": true` will hide long text in exandable block.
 Text exceeding telegram limit of 4096 will be excluded entirely.
 
-<img src="docs/vk_example.png" width="45%">
-<img src="docs/vk_example_2.png" width="45%">
-
+<p float="left">
+    <img src="docs/vk_example.png" width="45%">
+    <img src="docs/vk_example_2.png" width="45%">
+</p>
 
 # Alternatives
 - [Rongronggg9/RSS-to-Telegram-Bot](https://github.com/Rongronggg9/RSS-to-Telegram-Bot) — Better multi-user support
