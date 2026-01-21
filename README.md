@@ -1,17 +1,19 @@
-This is an RSS-to-Telegram bot. Made mostly for personal use.
+This is an RSS-to-Telegram bot. Made mostly for personal use. See [Feed Examples](#feed-examples) to see screenshot examples.
 
 ## Table of Contents
 
 - [Features](#features)
 - [Run](#run)
 - [Config](#config)
+- [Commands](#commands)
 - [Processors](#processors)
   - [media_extract](#media_extract)
   - [html_to_telegram](#html_to_telegram)
   - [jinja_formatter](#jinja_formatter)
   - [content_filter](#content_filter)
   - [ytdlp_downloader](#ytdlp_downloader)
-- [Feeds I tested](#feeds-i-tested-and-use)
+- [Suggestions](#suggestions)
+- [Feed Examples](#feed-examples)
 - [Alternatives](#alternatives)
 
 # Features
@@ -24,8 +26,8 @@ This is an RSS-to-Telegram bot. Made mostly for personal use.
 
 # Usage
 1. Create bot in [@BotFather](https://t.me/BotFather)
-2. Create and fill out .env 
-3. Create and fill out config.json
+2. Create and fill out .env (in root directory)
+3. Create and fill out config.json (in config directory)
 4. Run
     - Using uv: `uv run python -m bot.main`
     - Using docker compose: `docker compose up -d --build`
@@ -104,6 +106,14 @@ Example config.json:
     ]
 }
 ```
+
+# Commands
+Only admins specified in .env can use commands.
+
+- /help or /status - pull up Command list and Bot status
+- /list - list out all live feeds
+- /test - test feed url
+- /reload - reload config after you edited the json files.
 
 # Processors
 
@@ -226,9 +236,161 @@ Options:
 }
 ```
 
-# Feeds I tested and use:
+# Suggestions:
 - [RSS-Bridge/rss-bridge](https://github.com/RSS-Bridge/rss-bridge) — Create feeds from Youtube, Vk, Telegram channels and more.
-- [trashhalo/reddit-rss](https://github.com/trashhalo/reddit-rss) — Doesn't require a reddit account. Reddit also has native rss feeds but they lack media. 
+- [trashhalo/reddit-rss](https://github.com/trashhalo/reddit-rss) — Media-rich reddit RSS. Doesn't require a reddit account. 
+
+# Feed examples
+
+Once you configured a feed you can use `/test` command to test it with the whole processing pipeline (`/test` command will try finding the url somewhere in config).
+
+## Reddit short videos and pictures.
+
+Self-host [trashhalo/reddit-rss](https://github.com/trashhalo/reddit-rss) to get videos and high resolution pirctures in RSS feed.
+
+```
+{
+    "id": -100123,
+    "name": "vidya reddit",
+    "enable_preview": false,
+    "processing": {
+        "ytdlp_downloader": {
+            "search_in": "link",
+            "max_duration": 200
+        },
+        "media_extract": {
+            "skip_if_has_media": true
+        },
+        "html_to_telegram": {},
+        "jinja_formatter": {
+            "plain_link": false,
+            "content_use_blockquote": true,
+            "blockquote_only_if_exceeds": true
+        }
+    },
+    "feeds": {
+        "https://reddit-rss.example.com/r/shittydarksouls/top.json?sort=top&t=week": {
+            "name": "reddit.com/r/shittydarksouls"
+        }
+    }
+}
+```
+<img src="docs/reddit_example.png" width="45%">
+
+## Youtube
+
+I suggest self-hosting [RSS-Bridge/rss-bridge](https://github.com/RSS-Bridge/rss-bridge) but you can use the public instance.
+
+Will download short videos, and just link the large ones. `show_content": false` to hide video description.
+
+```
+{
+    "id": -1002780956915,
+    "name": "vidya youtube",
+    "processing": {
+        "ytdlp_downloader": {
+            "search_in": "link",
+            "max_duration": 200
+        },
+        "html_to_telegram": {},
+        "jinja_formatter": {
+            "show_content": false
+        }
+    },
+    "feeds": {
+        "https://rss-bridge.org/?action=display&bridge=YouTubeFeedExpanderBridge&channel=UC2oWuUSd3t3t5O3Vxp4lgAA&format=Atom": {},
+        "https://rss-bridge.org/?action=display&bridge=YouTubeFeedExpanderBridge&channel=UCDPG5a6rinyhES4wTLrGfig&format=Atom": {}
+    }
+}
+```
+<img src="docs/youtube_example_2.png" width="45%">
+<img src="docs/youtube_example_1.png" width="45%">
+
+## Music audio from YouTube
+
+`"show_content": false` to hide video description. `cookies_file` and `proxy_file` are optional.
+```
+{
+    "id": 123,
+    "name": "Ringtone bangers",
+    "processing": {
+        "ytdlp_downloader": {
+            "cookies_file": "config/cookies.txt",
+            "proxy_file": "config/socks5.txt",
+            "extract_audio": true,
+            "search_in": "link",
+            "max_duration": 2160
+        },
+        "media_extract": {
+            "download_media": true,
+            "max_media_size": 20971520,
+            "download_timeout": 30
+        },
+        "html_to_telegram": {},
+        "jinja_formatter": {
+            "show_content": false
+        }
+    },
+    "feeds": {
+        "https://rss-bridge.org/bridge01/?action=display&bridge=YouTubeFeedExpanderBridge&channel=UCjEk4ipFLqcdZ_m7uqItTIw&format=Atom": {}
+    }
+}
+```
+<img src="docs/youtube_music_example.png" width="65%">
+
+## Telegram 
+
+Telegram natively embeds all media nicely, skip everything other than link.
+
+```
+{
+    "id": 123,
+    "name": "animals telegram",
+    "processing": {
+        "html_to_telegram": {},
+        "jinja_formatter": {
+            "show_title": false,
+            "show_content": false
+        }
+    },
+    "feeds": {
+        "https://rss-bridge.org/?action=display&bridge=TelegramBridge&username=@birblife&format=Atom": {}
+    }
+}
+```
+<img src="docs/telegram_example.png" width="50%">
+
+## Vkontakte
+
+You must self-host [RSS-Bridge/rss-bridge](https://github.com/RSS-Bridge/rss-bridge) and use Vk api by using your Vk.com account and creating a Vk app. See [rss-bridge docs](https://rss-bridge.github.io/rss-bridge/Bridge_Specific/Vk2.html).
+
+```
+{
+    "id": -100123,
+    "name": "hema news vk",
+    "processing": {
+        "media_extract": {},
+        "html_to_telegram": {},
+        "jinja_formatter": {
+            "show_title": false,
+            "try_replace_content_with_title": true,
+            "content_use_blockquote": true,
+            "blockquote_only_if_exceeds": true
+        }
+    },
+    "feeds": {
+        "https://rss.example.com/?action=display&bridge=Vk2Bridge&u=wildarmory&format=Atom": {},
+        "https://rss.example.com/?action=display&bridge=Vk2Bridge&u=ur_for_hema&format=Atom": {}
+    }
+}
+```
+
+Using `"content_use_blockquote": true` will hide long text in exandable block.
+Text exceeding telegram limit of 4096 will be excluded entirely.
+
+<img src="docs/vk_example.png" width="45%">
+<img src="docs/vk_example_2.png" width="45%">
+
 
 # Alternatives
 - [Rongronggg9/RSS-to-Telegram-Bot](https://github.com/Rongronggg9/RSS-to-Telegram-Bot) — Better multi-user support
