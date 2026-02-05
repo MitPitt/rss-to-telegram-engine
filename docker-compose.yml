@@ -10,3 +10,15 @@ services:
       - LOG_LEVEL=${LOG_LEVEL:-INFO}
       - CONFIG_PATH=${CONFIG_PATH:-./config/config.json}
       - STATE_PATH=${STATE_PATH:-./config/state.json}
+      - TELEGRAM_API_SERVER_URL=${TELEGRAM_API_SERVER_URL:-}
+    # depends_on:
+    #   - telegram-api-server
+
+    # Comment out if disabled
+    # telegram-api-server:
+    #   image: aiogram/telegram-bot-api
+    #   environment:
+    #     - TELEGRAM_API_ID=${TELEGRAM_API_ID}
+    #     - TELEGRAM_API_HASH=${TELEGRAM_API_HASH}
+    #   ports:
+    #     - "8081:8081"

@@ -17,6 +17,7 @@ class Settings(BaseSettings):
     log_level: str = Field("INFO", validation_alias="LOG_LEVEL")
     config_path: str = Field("config/config.json", validation_alias="CONFIG_PATH")
     state_path: str = Field("config/state.json", validation_alias="STATE_PATH")
+    telegram_api_server_url: str = Field("", validation_alias="TELEGRAM_API_SERVER_URL")
 
     class Config:
         env_file = ".env"

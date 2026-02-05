@@ -1,4 +1,6 @@
-This is an RSS-to-Telegram bot. Made mostly for personal use. See [Feed Examples](#feed-examples) to see screenshot examples.
+This is an RSS-to-Telegram bot. Made mostly for personal use like an RSS-reader.
+
+See [Feed Examples](#feed-examples) to see screenshot examples.
 
 ## Table of Contents
 
@@ -14,7 +16,7 @@ This is an RSS-to-Telegram bot. Made mostly for personal use. See [Feed Examples
   - [ytdlp_downloader](#ytdlp_downloader)
 - [Suggestions](#suggestions)
 - [Feed Examples](#feed-examples)
-  - [Reddit](#reddit-short-videos-and-pictures)
+  - [Reddit](#reddit-with-media)
   - [Youtube](#youtube)
   - [Youtube to mp3](#music-audio-from-youtube)
   - [Telegram](#telegram)
@@ -52,11 +54,17 @@ ADMIN_IDS=123456789
 # Logging level: DEBUG, INFO, WARNING, ERROR
 LOG_LEVEL=INFO
 
-# Path to configuration file
+# Path to main configuration file
 CONFIG_PATH=config/config.json
 
 # Path to state file
 STATE_PATH=config/state.json
+
+# Local Telegram Api (Optional, uncomment container in docker-compose.yml)
+# Allows for larger uploads up to 2GB in size
+# TELEGRAM_API_SERVER_URL="http://telegram-api-server:8081"
+# TELEGRAM_API_ID="123..."
+# TELEGRAM_API_HASH="12345..."
 ```
 
 Example config.json:
@@ -115,10 +123,10 @@ Example config.json:
 # Commands
 Only admins specified in .env can use commands.
 
-- /help or /status - pull up Command list and Bot status
-- /list - list out all live feeds
-- /test - test feed url
-- /reload - reload config after you edited the json files.
+- `/help` or `/status` - pull up Command list and Bot status
+- `/list` - list out all live feeds
+- `/test` - test feed url
+- `/reload` - reload config after you edited the json files.
 
 # Processors
 
@@ -251,7 +259,7 @@ Once you configured a feed you can use `/test` command to test it with the whole
 
 ## Reddit with media
 
-Self-host [trashhalo/reddit-rss](https://github.com/trashhalo/reddit-rss) to get videos and high resolution pirctures in RSS feed.
+You must self-host [trashhalo/reddit-rss](https://github.com/trashhalo/reddit-rss) to get videos and high resolution pirctures in RSS feed.
 
 ```
 {
@@ -290,7 +298,7 @@ Will download short videos, and just link the large ones. `show_content": false`
 
 ```
 {
-    "id": -1002780956915,
+    "id": -100123,
     "name": "vidya youtube",
     "processing": {
         "ytdlp_downloader": {
@@ -319,7 +327,7 @@ Will download short videos, and just link the large ones. `show_content": false`
 `"show_content": false` to hide video description. `cookies_file` and `proxy_file` are optional.
 ```
 {
-    "id": 123,
+    "id": -100123,
     "name": "Ringtone bangers",
     "processing": {
         "ytdlp_downloader": {

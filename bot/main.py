@@ -6,6 +6,8 @@ import sys
 
 from aiogram import Bot, Dispatcher
 from aiogram.client.default import DefaultBotProperties
+from aiogram.client.session.aiohttp import AiohttpSession
+from aiogram.client.telegram import TelegramAPIServer
 from aiogram.enums import ParseMode
 
 from bot.config import ConfigLoader, Settings
@@ -75,8 +77,13 @@ class Application:
 
         self.pipeline = create_pipeline()
 
+        if self.settings.telegram_api_server_url:
+            session = AiohttpSession(api=TelegramAPIServer.from_base(self.settings.telegram_api_server_url, is_local=True), timeout=300)
+        else:
+            session = AiohttpSession(timeout=300)
+
         try:
-            self.bot = Bot(token=self.settings.bot_token, default=DefaultBotProperties(parse_mode=ParseMode.HTML))
+            self.bot = Bot(token=self.settings.bot_token, default=DefaultBotProperties(parse_mode=ParseMode.HTML), session=session)
             bot_info = await self.bot.get_me()
             logger.info(f"Bot connected: @{bot_info.username} ({bot_info.id})")
 
