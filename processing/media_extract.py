@@ -1,5 +1,6 @@
 import asyncio
 import contextlib
+import io
 import logging
 import re
 from typing import Any, Dict, List, Optional, Tuple
@@ -7,6 +8,7 @@ from urllib.parse import urljoin, urlparse
 
 import aiohttp
 from bs4 import BeautifulSoup
+from PIL import Image
 
 from core.models import Entry
 from processing.base import Processor
@@ -19,6 +21,8 @@ class MediaExtractProcessor(Processor):
 
     MAX_CONCURRENT_DOWNLOADS = 5
     DEFAULT_MAX_SIZE = 20 * 1024 * 1024
+    DEFAULT_MIN_IMAGE_MEGAPIXELS = 0.0625  # 250x250 = 62,500 pixels = 0.0625 MP
+    DEFAULT_MAX_ASPECT_RATIO = 20.0  # 20:1 or 1:20
 
     # Patterns for srcset parsing
     SRCSET_PATTERN = re.compile(r"(?:^|,\s*)(?P<url>\S+)(?:\s+(?P<number>\d+(\.\d+)?)(?P<unit>[wx]))?\s*(?=,|$)")
@@ -78,7 +82,9 @@ class MediaExtractProcessor(Processor):
         if download_media:
             max_size = config.get("max_media_size", self.DEFAULT_MAX_SIZE)
             timeout = config.get("download_timeout", 30)
-            await self._download_media(entry, max_size, timeout)
+            min_image_megapixels = config.get("min_image_megapixels", self.DEFAULT_MIN_IMAGE_MEGAPIXELS)
+            max_aspect_ratio = config.get("max_aspect_ratio", self.DEFAULT_MAX_ASPECT_RATIO)
+            await self._download_media(entry, max_size, timeout, min_image_megapixels, max_aspect_ratio)
 
         return entry
 
@@ -272,7 +278,43 @@ class MediaExtractProcessor(Processor):
 
         return False
 
-    async def _download_media(self, entry: Entry, max_size: int, timeout: int) -> None:
+    def _validate_image_dimensions(self, data: bytes, url: str, min_megapixels: float, max_ratio: float) -> bool:
+        """
+        Check if image meets dimension requirements.
+
+        Args:
+            data: Image bytes
+            url: URL for logging
+            min_megapixels: Minimum image size in megapixels (e.g., 0.0625 = 250x250)
+            max_ratio: Maximum aspect ratio (e.g., 20.0 means 20:1 or 1:20)
+
+        Returns:
+            True if image passes validation, False if it should be filtered out
+        """
+        try:
+            with Image.open(io.BytesIO(data)) as img:
+                width, height = img.size
+
+                # Check minimum resolution
+                megapixels = (width * height) / 1_000_000
+                if megapixels < min_megapixels:
+                    logger.debug(f"Image too small: {width}x{height} = {megapixels:.4f} MP < {min_megapixels} MP: {url[:80]}")
+                    return False
+
+                # Check aspect ratio
+                if width > 0 and height > 0:
+                    ratio = max(width / height, height / width)
+                    if ratio > max_ratio:
+                        logger.debug(f"Image aspect ratio too extreme: {width}x{height} = {ratio:.1f}:1 > {max_ratio}:1: {url[:80]}")
+                        return False
+
+                return True
+        except Exception as e:
+            logger.warning(f"Could not validate image dimensions for {url[:80]}: {e}")
+            # Allow images we can't validate - they might still work
+            return True
+
+    async def _download_media(self, entry: Entry, max_size: int, timeout: int, min_image_megapixels: float, max_aspect_ratio: float) -> None:
         semaphore = asyncio.Semaphore(self.MAX_CONCURRENT_DOWNLOADS)
 
         async def download_with_limit(url: str, media_type: str):
@@ -295,28 +337,51 @@ class MediaExtractProcessor(Processor):
 
         results = await asyncio.gather(*[task for _, _, task in download_tasks], return_exceptions=True)
 
+        # Track successfully downloaded URLs
+        successful_images = []
+        successful_videos = []
+        successful_audios = []
+        filtered_count = 0
+
         for (media_type, url, _), result in zip(download_tasks, results):
             if isinstance(result, Exception):
                 logger.warning(f"Failed to download {media_type} from {url[:80]}: {result}")
                 continue
 
             if result is None:
+                # Download failed (HTTP error, timeout, or size limit) - skip this URL
                 continue
 
             data, filename = result
 
             if media_type == "image":
+                # Validate image dimensions before adding
+                if not self._validate_image_dimensions(data, url, min_image_megapixels, max_aspect_ratio):
+                    filtered_count += 1
+                    continue
                 entry.image_buffers.append((data, url, filename))
+                successful_images.append(url)
             elif media_type == "video":
                 entry.video_buffers.append((data, url, filename))
+                successful_videos.append(url)
             elif media_type == "audio":
                 entry.audio_buffers.append((data, url, filename))
+                successful_audios.append(url)
 
-        logger.info(
+        # Replace URL lists with only successfully downloaded URLs
+        # This prevents failed downloads from being passed to Telegram
+        entry.images = successful_images
+        entry.videos = successful_videos
+        entry.audios = successful_audios
+
+        log_msg = (
             f"Downloaded media for '{entry.title[:50]}': "
             f"{len(entry.image_buffers)} images, {len(entry.video_buffers)} videos, "
             f"{len(entry.audio_buffers)} audios"
         )
+        if filtered_count > 0:
+            log_msg += f" ({filtered_count} images filtered due to dimensions)"
+        logger.info(log_msg)
 
     async def _download_single_media(self, url: str, media_type: str, max_size: int, timeout: int) -> Optional[Tuple[bytes, Optional[str]]]:
         try:
