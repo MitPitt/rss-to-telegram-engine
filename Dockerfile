@@ -25,9 +25,14 @@ RUN apt-get update && \
     apt-get install -y --no-install-recommends \
     ca-certificates \
     openssh-client \
-    ffmpeg && \
+    ffmpeg \
+    curl \
+    unzip && \
     update-ca-certificates && \
     rm -rf /var/lib/apt/lists/*
+
+# Install Deno for yt-dlp JS runtime support (YouTube downloads)
+RUN curl -fsSL https://deno.land/install.sh | DENO_INSTALL=/usr/local sh
 
 # Copy the Python version
 COPY --from=builder /python /python

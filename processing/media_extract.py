@@ -279,18 +279,6 @@ class MediaExtractProcessor(Processor):
         return False
 
     def _validate_image_dimensions(self, data: bytes, url: str, min_megapixels: float, max_ratio: float) -> bool:
-        """
-        Check if image meets dimension requirements.
-
-        Args:
-            data: Image bytes
-            url: URL for logging
-            min_megapixels: Minimum image size in megapixels (e.g., 0.0625 = 250x250)
-            max_ratio: Maximum aspect ratio (e.g., 20.0 means 20:1 or 1:20)
-
-        Returns:
-            True if image passes validation, False if it should be filtered out
-        """
         try:
             with Image.open(io.BytesIO(data)) as img:
                 width, height = img.size
@@ -311,7 +299,6 @@ class MediaExtractProcessor(Processor):
                 return True
         except Exception as e:
             logger.warning(f"Could not validate image dimensions for {url[:80]}: {e}")
-            # Allow images we can't validate - they might still work
             return True
 
     async def _download_media(self, entry: Entry, max_size: int, timeout: int, min_image_megapixels: float, max_aspect_ratio: float) -> None:

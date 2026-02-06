@@ -30,6 +30,9 @@ class YtDlpDownloaderProcessor(Processor):
 
     DEFAULT_MAX_DURATION = 900
 
+    # Default path for Deno in Docker container (installed via Dockerfile)
+    DEFAULT_DENO_PATH = "/usr/local/bin/deno"
+
     def __init__(self):
         self._proxy_cache: Dict[str, str] = {}
 
@@ -66,6 +69,9 @@ class YtDlpDownloaderProcessor(Processor):
         timeout = config.get("download_timeout", 300)
         quality = config.get("quality", "best[height<=720]/bv+ba/bv")
         extract_audio = config.get("extract_audio", False)
+        # Deno JS runtime for YouTube (off by default)
+        use_deno_js_runtime = config.get("use_deno_js_runtime", False)
+        deno_path = config.get("deno_path", self.DEFAULT_DENO_PATH)
 
         # Load proxy URL from file if provided
         proxy_url = None
@@ -96,6 +102,8 @@ class YtDlpDownloaderProcessor(Processor):
                     timeout=timeout,
                     quality=quality,
                     extract_audio=extract_audio,
+                    use_deno_js_runtime=use_deno_js_runtime,
+                    deno_path=deno_path,
                 )
 
                 if result:
@@ -150,6 +158,8 @@ class YtDlpDownloaderProcessor(Processor):
         timeout: int,
         quality: str,
         extract_audio: bool,
+        use_deno_js_runtime: bool = False,
+        deno_path: str = "/usr/local/bin/deno",
     ) -> Optional[Tuple[bytes, str, Optional[bytes]]]:
         # Create temporary directory for download in a dedicated subdirectory
         # This ensures easy cleanup even if something goes wrong
@@ -170,6 +180,8 @@ class YtDlpDownloaderProcessor(Processor):
                 quality=quality,
                 extract_audio=extract_audio,
                 info_only=True,
+                use_deno_js_runtime=use_deno_js_runtime,
+                deno_path=deno_path,
             )
 
             # Retry info fetch up to 3 times on timeout or parse errors
@@ -226,6 +238,8 @@ class YtDlpDownloaderProcessor(Processor):
                     quality=quality,
                     extract_audio=extract_audio,
                     max_filesize_mb=max_filesize_mb,
+                    use_deno_js_runtime=use_deno_js_runtime,
+                    deno_path=deno_path,
                 )
 
                 logger.debug(f"Downloading video from {url}")
@@ -313,8 +327,14 @@ class YtDlpDownloaderProcessor(Processor):
         extract_audio: bool,
         max_filesize_mb: Optional[int] = None,
         info_only: bool = False,
+        use_deno_js_runtime: bool = False,
+        deno_path: str = "/usr/local/bin/deno",
     ) -> List[str]:
         cmd = ["yt-dlp"]
+
+        # Deno JS runtime for YouTube (required for some videos)
+        if use_deno_js_runtime and os.path.exists(deno_path):
+            cmd.extend(["--js-runtimes", f"deno:{deno_path}"])
 
         if proxy_url:
             cmd.extend(["--proxy", proxy_url])
