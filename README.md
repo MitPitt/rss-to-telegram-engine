@@ -1,6 +1,11 @@
-This is an RSS-to-Telegram bot. Made mostly for personal use like an RSS-reader.
+Bot that posts RSS feeds to Telegram. Made mostly for personal use, like an RSS-reader. 
 
-See [Feed Examples](#feed-examples) to see screenshot examples.
+`rss-to-telegram-engine` is designed to work with native RSS feeds and most [RSS generators](#suggestions). UX is a priority.
+
+Real examples of `rss-to-telegram-engine` on Telegram:
+- [@hema_feed](https://t.me/hema_feed) - HEMA and Fencing sports news (>40 feeds from youtube, reddit, telegram, vk)
+
+See [Feed Examples](#feed-examples) to see screenshots of some specific examples.
 
 ## Table of Contents
 
@@ -22,11 +27,14 @@ See [Feed Examples](#feed-examples) to see screenshot examples.
 
 # Features
 
-- Multi-channel support with hierarchical and per-feed configuration
-- Media extraction and downloading, with yt-dlp integration
-- Customizable message formatting 
-- Content filtering 
-- Rate limiting for RSS source requests
+- Multi-channel with hierarchical and per-feed configuration
+- Media extraction, with yt-dlp integration
+- Templates 
+- Filter by content 
+- Robust HTML to Telegram markup conversion
+- Config is human-readable json
+- State is also json
+- ...
 
 # Usage
 1. Create bot in [@BotFather](https://t.me/BotFather)
