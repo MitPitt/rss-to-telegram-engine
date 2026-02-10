@@ -7,6 +7,7 @@ See [Feed Examples](#feed-examples) to see screenshot examples.
 - [Features](#features)
 - [Run](#run)
 - [Config](#config)
+  - [Per-Feed Overrides (extra_flags)](#per-feed-overrides-extra_flags)
 - [Commands](#commands)
 - [Processors](#processors)
   - [media_extract](#media_extract)
@@ -14,13 +15,9 @@ See [Feed Examples](#feed-examples) to see screenshot examples.
   - [jinja_formatter](#jinja_formatter)
   - [content_filter](#content_filter)
   - [ytdlp_downloader](#ytdlp_downloader)
+  - [append_text](#append_text)
 - [Suggestions](#suggestions)
-- [Feed Examples](#feed-examples)
-  - [Reddit](#reddit-with-media)
-  - [Youtube](#youtube)
-  - [Youtube to mp3](#music-audio-from-youtube)
-  - [Telegram](#telegram)
-  - [Vk](#vkontakte)
+- [Feed Examples](#feed-examples) (Reddit, Youtube, Youtube to mp3, Telegram, Vk)
 - [Alternatives](#alternatives)
 
 # Features
@@ -43,7 +40,9 @@ See [Feed Examples](#feed-examples) to see screenshot examples.
 
 All configuration files, state, templates, cookies, and proxy files should be placed in the `config/` directory.
 
-Example .env:
+<details>
+<summary>Example .env</summary>
+
 ```
 # Bot token from @BotFather
 BOT_TOKEN=your_bot_token_here
@@ -67,7 +66,11 @@ STATE_PATH=config/state.json
 # TELEGRAM_API_HASH="12345..."
 ```
 
-Example config.json:
+</details>
+
+<details>
+<summary>Example config.json</summary>
+
 ```json
 {
     "_comment": "You can split configs into multiple files using 'includes'.",
@@ -120,6 +123,27 @@ Example config.json:
 }
 ```
 
+</details>
+
+## Per-Feed Overrides (extra_flags)
+
+You can override behavior of some processors for individual feeds using `extra_flags`. This is passed to all processors and allows per-feed customization without creating separate channel blocks.
+
+```json
+"feeds": {
+    "https://example.com/feed": {
+        "extra_flags": {
+            "skip": true,
+            "append_text": "#important @admin"
+        }
+    }
+}
+```
+
+Supported flags:
+- `skip` - Skip this feed entirely by `content_filter` processor
+- `append_text` - Override text and/or position in `append_text` processor
+
 # Commands
 Only admins specified in .env can use commands.
 
@@ -162,7 +186,7 @@ Converts HTML content to Telegram-compatible HTML. Should run after `media_extra
 
 ## jinja_formatter
 
-Formats the final message using Jinja2 templates. Should be the last processor.
+Formats the final message using Jinja2 templates. Should be the last processor (or before `append_text`).
 
 All config options are passed to the template as context variables, so templates can define their own options.
 
@@ -194,15 +218,21 @@ Default template (`config/jinja_templates/default.j2`) options:
 
 ## content_filter
 
-Filters posts based on regex pattern matching.
+Filters posts based on regex pattern matching or media count.
 
 Options:
+- `skip_all` (bool, default: false) - Filter out all entries (temporarily disable a channel)
 - `patterns` (list) - Regex patterns to match
 - `match_title` (bool, default: true) - Check title
 - `match_content` (bool, default: true) - Check content
 - `match_mode` ("any" | "all", default: "any") - How patterns combine
 - `invert` (bool, default: false) - If true, filter OUT non-matching posts
 - `flags` (string) - Regex flags (e.g., "IGNORECASE,MULTILINE")
+- `min_media_count` (int) - Minimum number of media attachments required
+- `max_media_count` (int) - Maximum number of media attachments allowed
+
+Extra flags support:
+- `extra_flags.skip` (bool) - Skip individual feeds without creating separate channels
 
 Filter out ads/sponsored posts:
 ```json
@@ -220,9 +250,18 @@ Keep only posts about Python:
 }
 ```
 
+Skip a specific feed:
+```json
+"feeds": {
+    "https://example.com/noisy-feed": {
+        "extra_flags": {"skip": true}
+    }
+}
+```
+
 ## ytdlp_downloader
 
-Downloads videos using yt-dlp. Requires yt-dlp to be installed.
+Downloads videos using yt-dlp. Requires yt-dlp to be installed (included in Docker image).
 
 Options:
 - `url_patterns` (list) - Regex patterns to match video URLs (default: YouTube, Reddit video)
@@ -237,8 +276,10 @@ Options:
 - `max_filesize` (int, default: 50) - Max file size in MB
 - `max_duration` (int, default: 900) - Max video duration in seconds
 - `download_timeout` (int, default: 300) - Download timeout in seconds
-- `quality` (string, default: "best[height<=720]") - yt-dlp format selection
+- `quality` (string, default: "best[height<=720]/bv+ba/bv") - yt-dlp format selection
 - `extract_audio` (bool, default: false) - Extract audio only (mp3 with thumbnail)
+- `use_deno_js_runtime` (bool, default: false) - Use Deno JS runtime for YouTube
+- `deno_path` (string, default: "/usr/local/bin/deno") - Path to Deno binary
 
 ```json
 "ytdlp_downloader": {
@@ -246,6 +287,38 @@ Options:
     "search_in": "link",
     "max_filesize": 50,
     "quality": "best[height<=720]"
+}
+```
+
+## append_text
+
+Appends custom text to formatted messages. Must run after `jinja_formatter`. Useful for adding #hashtags, @mentions, or other custom text to posts.
+
+Options:
+- `text` (string) - The text to append
+- `position` (string, default: "suffix") - Where to place text: "prefix" or "suffix"
+
+Extra flags support:
+- `extra_flags.append_text` (string or dict) - Per-feed override. Can be a simple string or dict with `text` and `position`.
+
+```json
+"processing": {
+    "jinja_formatter": {},
+    "append_text": {
+        "text": "#news"
+    }
+}
+```
+
+Per-feed override:
+```json
+"feeds": {
+    "https://example.com/tech": {
+        "extra_flags": {"append_text": "#tech"}
+    },
+    "https://example.com/sports": {
+        "extra_flags": {"append_text": {"text": "#sports #news\n\n", "position": "prefix"}}
+    }
 }
 ```
 
@@ -257,11 +330,12 @@ Options:
 
 Once you configured a feed you can use `/test` command to test it with the whole processing pipeline (`/test` command will try finding the url somewhere in config).
 
-## Reddit with media
+<details>
+<summary>Reddit with media</summary>
 
 You must self-host [trashhalo/reddit-rss](https://github.com/trashhalo/reddit-rss) to get videos and high resolution pirctures in RSS feed.
 
-```
+```json
 {
     "id": -100123,
     "name": "vidya reddit",
@@ -290,13 +364,16 @@ You must self-host [trashhalo/reddit-rss](https://github.com/trashhalo/reddit-rs
 ```
 <img src="docs/reddit_example.png" width="45%">
 
-## Youtube
+</details>
+
+<details>
+<summary>YouTube</summary>
 
 I suggest self-hosting [RSS-Bridge/rss-bridge](https://github.com/RSS-Bridge/rss-bridge) but you can use the public instance.
 
 Will download short videos, and just link the large ones. `show_content": false` to hide video description.
 
-```
+```json
 {
     "id": -100123,
     "name": "vidya youtube",
@@ -322,10 +399,14 @@ Will download short videos, and just link the large ones. `show_content": false`
     <img src="docs/youtube_example_1.png" width="45%">
 </p>
 
-## Music audio from YouTube
+</details>
+
+<details>
+<summary>Music/Audio from YouTube</summary>
 
 `"show_content": false` to hide video description. `cookies_file` and `proxy_file` are optional.
-```
+
+```json
 {
     "id": -100123,
     "name": "Ringtone bangers",
@@ -354,11 +435,14 @@ Will download short videos, and just link the large ones. `show_content": false`
 ```
 <img src="docs/youtube_music_example.png" width="65%">
 
-## Telegram 
+</details>
+
+<details>
+<summary>Telegram</summary>
 
 Telegram natively embeds all media nicely, skip everything other than link.
 
-```
+```json
 {
     "id": 123,
     "name": "animals telegram",
@@ -376,11 +460,14 @@ Telegram natively embeds all media nicely, skip everything other than link.
 ```
 <img src="docs/telegram_example.png" width="50%">
 
-## Vkontakte
+</details>
+
+<details>
+<summary>VKontakte</summary>
 
 You must self-host [RSS-Bridge/rss-bridge](https://github.com/RSS-Bridge/rss-bridge) and use Vk api by using your Vk.com account and creating a Vk app. See [rss-bridge docs](https://rss-bridge.github.io/rss-bridge/Bridge_Specific/Vk2.html).
 
-```
+```json
 {
     "id": -100123,
     "name": "hema news vk",
@@ -408,6 +495,8 @@ Text exceeding telegram limit of 4096 will be excluded entirely.
     <img src="docs/vk_example.png" width="45%">
     <img src="docs/vk_example_2.png" width="45%">
 </p>
+
+</details>
 
 # Alternatives
 - [Rongronggg9/RSS-to-Telegram-Bot](https://github.com/Rongronggg9/RSS-to-Telegram-Bot) — Better multi-user support
