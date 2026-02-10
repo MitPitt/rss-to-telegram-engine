@@ -48,6 +48,7 @@ class FeedConfig:
     check_interval: Optional[int] = None
     enable_preview: Optional[bool] = None
     processing: Dict[str, Dict[str, Any]] = field(default_factory=dict)
+    extra_flags: Dict[str, Any] = field(default_factory=dict)
 
     def merge_with_defaults(self, defaults: "FeedConfig") -> "FeedConfig":
         return FeedConfig(
@@ -57,6 +58,7 @@ class FeedConfig:
             check_interval=self.check_interval if self.check_interval is not None else defaults.check_interval,
             enable_preview=self.enable_preview if self.enable_preview is not None else defaults.enable_preview,
             processing=self.processing if self.processing else defaults.processing,
+            extra_flags={**defaults.extra_flags, **self.extra_flags},
         )
 
 

@@ -249,6 +249,7 @@ class FeedMonitor:
         global_config = {
             "feed_link": feed_url,
             "feed_name": feed_config.name or entry.feed_title or "RSS Feed",
+            "extra_flags": feed_config.extra_flags,
         }
 
         channel = self.config.get_channel_for_feed(feed_url)

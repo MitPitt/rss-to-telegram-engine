@@ -144,6 +144,7 @@ class ConfigLoader:
                     check_interval=feed_data.get("check_interval"),
                     enable_preview=feed_data.get("enable_preview"),
                     processing=feed_data.get("processing", {}),
+                    extra_flags=feed_data.get("extra_flags", {}),
                 )
 
             channels.append(
@@ -183,6 +184,7 @@ class ConfigLoader:
                             "check_interval": feed.check_interval,
                             "enable_preview": feed.enable_preview,
                             "processing": feed.processing,
+                            "extra_flags": feed.extra_flags,
                         }
                         for url, feed in channel.feeds.items()
                     },

@@ -12,6 +12,13 @@ class ContentFilterProcessor(Processor):
     name = "content_filter"
 
     async def process(self, entry: Entry, config: Dict[str, Any]) -> Entry:
+        # Check extra_flags for per-feed skip
+        extra_flags = config.get("extra_flags", {})
+        if extra_flags.get("skip", False):
+            entry.filtered = True
+            logger.info(f"Entry filtered: '{entry.title[:50]}' (extra_flags.skip=True)")
+            return entry
+
         # Skip all option - filter out all entries (useful to temporarily disable a feed)
         if config.get("skip_all", False):
             entry.filtered = True
