@@ -23,6 +23,8 @@ class MediaExtractProcessor(Processor):
     DEFAULT_MAX_SIZE = 20 * 1024 * 1024
     DEFAULT_MIN_IMAGE_MEGAPIXELS = 0.0625  # 250x250 = 62,500 pixels = 0.0625 MP
     DEFAULT_MAX_ASPECT_RATIO = 20.0  # 20:1 or 1:20
+    DEFAULT_DOWNSCALE_IMAGES = True
+    DEFAULT_MAX_IMAGE_MEGAPIXELS = 4.0  # 4MP max to stay under Telegram's 10MB limit
 
     # Patterns for srcset parsing
     SRCSET_PATTERN = re.compile(r"(?:^|,\s*)(?P<url>\S+)(?:\s+(?P<number>\d+(\.\d+)?)(?P<unit>[wx]))?\s*(?=,|$)")
@@ -84,7 +86,9 @@ class MediaExtractProcessor(Processor):
             timeout = config.get("download_timeout", 30)
             min_image_megapixels = config.get("min_image_megapixels", self.DEFAULT_MIN_IMAGE_MEGAPIXELS)
             max_aspect_ratio = config.get("max_aspect_ratio", self.DEFAULT_MAX_ASPECT_RATIO)
-            await self._download_media(entry, max_size, timeout, min_image_megapixels, max_aspect_ratio)
+            downscale_images = config.get("downscale_images", self.DEFAULT_DOWNSCALE_IMAGES)
+            max_image_megapixels = config.get("max_image_megapixels", self.DEFAULT_MAX_IMAGE_MEGAPIXELS)
+            await self._download_media(entry, max_size, timeout, min_image_megapixels, max_aspect_ratio, downscale_images, max_image_megapixels)
 
         return entry
 
@@ -301,7 +305,56 @@ class MediaExtractProcessor(Processor):
             logger.warning(f"Could not validate image dimensions for {url[:80]}: {e}")
             return True
 
-    async def _download_media(self, entry: Entry, max_size: int, timeout: int, min_image_megapixels: float, max_aspect_ratio: float) -> None:
+    def _downscale_image(self, data: bytes, url: str, max_megapixels: float) -> bytes:
+        try:
+            with Image.open(io.BytesIO(data)) as img:
+                width, height = img.size
+                current_megapixels = (width * height) / 1_000_000
+
+                if current_megapixels <= max_megapixels:
+                    return data
+
+                scale_factor = (max_megapixels / current_megapixels) ** 0.5
+                new_width = int(width * scale_factor)
+                new_height = int(height * scale_factor)
+
+                if img.mode in ("RGBA", "P", "LA"):
+                    background = Image.new("RGB", img.size, (255, 255, 255))
+                    if img.mode == "P":
+                        img = img.convert("RGBA")
+                    background.paste(img, mask=img.split()[-1] if img.mode in ("RGBA", "LA") else None)
+                    img = background
+                elif img.mode != "RGB":
+                    img = img.convert("RGB")
+
+                resized = img.resize((new_width, new_height), Image.LANCZOS)
+
+                output = io.BytesIO()
+                resized.save(output, format="JPEG", quality=85, optimize=True)
+                result = output.getvalue()
+
+                logger.info(
+                    f"Downscaled image from {width}x{height} ({current_megapixels:.2f}MP) "
+                    f"to {new_width}x{new_height} ({(new_width * new_height) / 1_000_000:.2f}MP), "
+                    f"size: {len(data)} -> {len(result)} bytes: {url[:80]}"
+                )
+
+                return result
+
+        except Exception as e:
+            logger.warning(f"Could not downscale image {url[:80]}: {e}")
+            return data
+
+    async def _download_media(
+        self,
+        entry: Entry,
+        max_size: int,
+        timeout: int,
+        min_image_megapixels: float,
+        max_aspect_ratio: float,
+        downscale_images: bool,
+        max_image_megapixels: float,
+    ) -> None:
         semaphore = asyncio.Semaphore(self.MAX_CONCURRENT_DOWNLOADS)
 
         async def download_with_limit(url: str, media_type: str):
@@ -342,10 +395,13 @@ class MediaExtractProcessor(Processor):
             data, filename = result
 
             if media_type == "image":
-                # Validate image dimensions before adding
                 if not self._validate_image_dimensions(data, url, min_image_megapixels, max_aspect_ratio):
                     filtered_count += 1
                     continue
+                if downscale_images:
+                    data = self._downscale_image(data, url, max_image_megapixels)
+                    if filename and not filename.lower().endswith((".jpg", ".jpeg")):
+                        filename = filename.rsplit(".", 1)[0] + ".jpg" if "." in filename else filename + ".jpg"
                 entry.image_buffers.append((data, url, filename))
                 successful_images.append(url)
             elif media_type == "video":
