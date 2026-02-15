@@ -31,12 +31,25 @@ async def cmd_list(message: Message, dispatcher: Dispatcher, state_manager):
         await message.answer("No channels configured yet.\n\nEdit config/config.json to add feeds.")
         return
 
-    await message.answer("Configured Feeds:")
+    # Parse optional channel name filter from arguments
+    parts = message.text.split(maxsplit=1)
+    channel_filter = parts[1].lower() if len(parts) > 1 else None
+
+    if channel_filter:
+        await message.answer(f"Configured Feeds (filter: '{channel_filter}'):")
+    else:
+        await message.answer("Configured Feeds:")
     await asyncio.sleep(0.3)
 
     total_feeds = 0
+    matched_channels = 0
 
     for channel in config.channels:
+        # Skip channels that don't match the filter
+        if channel_filter and channel_filter not in channel.name.lower():
+            continue
+
+        matched_channels += 1
         channel_msg = f"<blockquote expandable><b>Channel:</b> {channel.name} (ID: {channel.id})\n"
 
         if not channel.feeds:
@@ -64,8 +77,78 @@ async def cmd_list(message: Message, dispatcher: Dispatcher, state_manager):
         await message.answer(channel_msg, disable_web_page_preview=True)
         await asyncio.sleep(0.3)
 
-    summary = f"Total: {total_feeds} feeds in {len(config.channels)} channels"
-    await message.answer(summary, disable_web_page_preview=True)
+    if channel_filter and matched_channels == 0:
+        await message.answer(f"No channels found matching '{channel_filter}'")
+    else:
+        summary = f"Total: {total_feeds} feeds in {matched_channels} channels"
+        await message.answer(summary, disable_web_page_preview=True)
+
+
+@router.channel_post(Command("list_links"))
+@router.message(Command("list_links"))
+async def cmd_list_links(message: Message, dispatcher: Dispatcher, state_manager):
+    config: Config = dispatcher["config"]
+
+    if not config.channels:
+        await message.answer("No channels configured yet.\n\nEdit config/config.json to add feeds.")
+        return
+
+    # Parse optional channel name filter from arguments
+    parts = message.text.split(maxsplit=1)
+    channel_filter = parts[1].lower() if len(parts) > 1 else None
+
+    if channel_filter:
+        await message.answer(f"Configured Feeds with canonical links (filter: '{channel_filter}'):")
+    else:
+        await message.answer("Configured Feeds (with canonical links):")
+    await asyncio.sleep(0.3)
+
+    total_feeds = 0
+    matched_channels = 0
+
+    for channel in config.channels:
+        # Skip channels that don't match the filter
+        if channel_filter and channel_filter not in channel.name.lower():
+            continue
+
+        matched_channels += 1
+        channel_msg = f"<blockquote expandable><b>Channel:</b> {channel.name} (ID: {channel.id})\n"
+
+        if not channel.feeds:
+            channel_msg += "No feeds"
+        else:
+            for i, (feed_url, feed) in enumerate(channel.feeds.items(), 1):
+                feed_config = config.get_feed_config(feed_url)
+                name = feed_config.name
+                if not name:
+                    state = state_manager.get_state(feed_url)
+                    name = state.feed_title or "Unnamed"
+
+                # Get canonical link: config override > cached from RSS > fallback to RSS URL
+                link = feed_config.link
+                if not link:
+                    state = state_manager.get_state(feed_url)
+                    link = state.feed_link or feed_url
+
+                feed_line = f"  {i}. <code>{name}</code>\n     {link}\n"
+                if len(channel_msg) + len(feed_line) > 3800:
+                    channel_msg += "</blockquote>"
+                    await message.answer(channel_msg, disable_web_page_preview=True)
+                    await asyncio.sleep(0.3)
+                    channel_msg = f"<blockquote expandable><b>Channel:</b> {channel.name} (continued)\n"
+
+                channel_msg += feed_line
+                total_feeds += 1
+
+        channel_msg += "</blockquote>"
+        await message.answer(channel_msg, disable_web_page_preview=True)
+        await asyncio.sleep(0.3)
+
+    if channel_filter and matched_channels == 0:
+        await message.answer(f"No channels found matching '{channel_filter}'")
+    else:
+        summary = f"Total: {total_feeds} feeds in {matched_channels} channels"
+        await message.answer(summary, disable_web_page_preview=True)
 
 
 @router.channel_post(Command("start"))
@@ -95,11 +178,13 @@ async def cmd_status(message: Message, dispatcher: Dispatcher, state_manager, mo
     )
     await message.answer(
         "Available commands:\n"
-        "• /list - List all feeds\n"
+        "• /list [filter] - List all feeds (RSS URLs)\n"
+        "• /list_links [filter] - List all feeds (canonical links)\n"
         "• /test &lt;url&gt; - Test feed URL\n"
         "• /status - Show bot status\n"
         "• /reload - Reload configuration\n"
         "• /help - Show this help\n\n"
+        "Filter argument filters by channel name (case-insensitive).\n"
         "Note: Most configuration is done via json config file."
     )
 
@@ -228,7 +313,7 @@ async def cmd_test(message: Message, dispatcher: Dispatcher, pipeline, monitor):
 
     try:
         fetcher = FeedFetcher()
-        entries, _, _, feed_title = await fetcher.fetch(url)
+        entries, _, _, feed_title, _ = await fetcher.fetch(url)
 
         if not entries:
             await status_msg.edit_text("❌ No entries found in feed or feed hasn't changed.")

@@ -44,6 +44,7 @@ class Entry:
 class FeedConfig:
     url: str
     name: Optional[str] = None
+    link: Optional[str] = None
     note: Optional[str] = None
     check_interval: Optional[int] = None
     enable_preview: Optional[bool] = None
@@ -54,6 +55,7 @@ class FeedConfig:
         return FeedConfig(
             url=self.url,
             name=self.name or defaults.name,
+            link=self.link or defaults.link,
             note=self.note or defaults.note,
             check_interval=self.check_interval if self.check_interval is not None else defaults.check_interval,
             enable_preview=self.enable_preview if self.enable_preview is not None else defaults.enable_preview,

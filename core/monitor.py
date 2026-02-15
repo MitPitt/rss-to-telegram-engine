@@ -211,13 +211,13 @@ class FeedMonitor:
         await self._rate_limiter.acquire(feed_url)
 
         try:
-            entries, etag, last_modified, feed_title = await self.fetcher.fetch(feed_url, state.etag, state.last_modified)
+            entries, etag, last_modified, feed_title, feed_link = await self.fetcher.fetch(feed_url, state.etag, state.last_modified)
         except Exception as e:
             logger.error(f"[{self._id}] Fetch error for {feed_url}: {e}")
             await self.state.increment_error(feed_url)
             return
 
-        await self.state.update_metadata(feed_url, etag, last_modified, feed_title)
+        await self.state.update_metadata(feed_url, etag, last_modified, feed_title, feed_link)
 
         if not entries:
             return

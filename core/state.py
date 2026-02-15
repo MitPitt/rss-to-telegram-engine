@@ -19,6 +19,7 @@ class FeedState:
     last_modified: Optional[str] = None
     error_count: int = 0
     feed_title: Optional[str] = None
+    feed_link: Optional[str] = None
 
     def to_dict(self) -> Dict[str, Any]:
         entries_list = self.processed_entries
@@ -32,6 +33,7 @@ class FeedState:
             "last_modified": self.last_modified,
             "error_count": self.error_count,
             "feed_title": self.feed_title,
+            "feed_link": self.feed_link,
         }
 
     @classmethod
@@ -43,6 +45,7 @@ class FeedState:
             last_modified=data.get("last_modified"),
             error_count=data.get("error_count", 0),
             feed_title=data.get("feed_title"),
+            feed_link=data.get("feed_link"),
         )
 
 
@@ -95,7 +98,9 @@ class StateManager:
                 state.processed_entries = state.processed_entries[-MAX_PROCESSED_ENTRIES_PER_FEED:]
             await self.save()
 
-    async def update_metadata(self, feed_url: str, etag: Optional[str], last_modified: Optional[str], feed_title: Optional[str] = None):
+    async def update_metadata(
+        self, feed_url: str, etag: Optional[str], last_modified: Optional[str], feed_title: Optional[str] = None, feed_link: Optional[str] = None
+    ):
         state = self.get_state(feed_url)
         state.etag = etag
         state.last_modified = last_modified
@@ -103,6 +108,8 @@ class StateManager:
         state.error_count = 0  # Reset error count on successful fetch
         if feed_title:
             state.feed_title = feed_title  # Cache feed title
+        if feed_link:
+            state.feed_link = feed_link  # Cache feed canonical link
         await self.save()
 
     async def increment_error(self, feed_url: str):

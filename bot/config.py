@@ -140,6 +140,7 @@ class ConfigLoader:
                 feeds[url] = FeedConfig(
                     url=url,
                     name=feed_data.get("name"),
+                    link=feed_data.get("link"),
                     note=feed_data.get("note"),
                     check_interval=feed_data.get("check_interval"),
                     enable_preview=feed_data.get("enable_preview"),
@@ -180,6 +181,7 @@ class ConfigLoader:
                     "feeds": {
                         url: {
                             "name": feed.name,
+                            "link": feed.link,
                             "note": feed.note,
                             "check_interval": feed.check_interval,
                             "enable_preview": feed.enable_preview,

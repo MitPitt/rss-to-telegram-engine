@@ -19,7 +19,7 @@ class FeedFetcher:
 
     async def fetch(
         self, url: str, etag: Optional[str] = None, last_modified: Optional[str] = None
-    ) -> Tuple[List[Entry], Optional[str], Optional[str], Optional[str]]:
+    ) -> Tuple[List[Entry], Optional[str], Optional[str], Optional[str], Optional[str]]:
         headers = {"User-Agent": self.user_agent}
 
         if etag:
@@ -31,7 +31,7 @@ class FeedFetcher:
             async with aiohttp.ClientSession(timeout=self.timeout) as session, session.get(url, headers=headers) as response:
                 if response.status == 304:
                     logger.debug(f"Feed not modified: {url}")
-                    return [], etag, last_modified, None
+                    return [], etag, last_modified, None, None
 
                 response.raise_for_status()
 
@@ -66,11 +66,12 @@ class FeedFetcher:
                 logger.warning(f"Feed parse warning for {url}: {feed.bozo_exception}")
 
             feed_title = feed.feed.get("title", "RSS Feed") if hasattr(feed, "feed") else "RSS Feed"
+            feed_link = feed.feed.get("link") if hasattr(feed, "feed") else None
 
             entries = self._parse_entries(feed, feed_title)
-            logger.info(f"Fetched {len(entries)} entries from {url} (feed: {feed_title})")
+            logger.info(f"Fetched {len(entries)} entries from {url} (feed: {feed_title}, link: {feed_link})")
 
-            return entries, new_etag, new_last_modified, feed_title
+            return entries, new_etag, new_last_modified, feed_title, feed_link
 
         except Exception as e:
             logger.error(f"Error parsing feed {url}: {e}")
