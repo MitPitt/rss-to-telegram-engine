@@ -104,6 +104,42 @@ class ConfigLoader:
                 result[key] = value
         return result
 
+    def _normalize_processing(self, processing: Any) -> List[Dict[str, Any]]:
+        """Convert processing config to list format, supporting both dict and list formats."""
+        if not processing:
+            return []
+
+        if isinstance(processing, list):
+            # Already a list, validate items
+            result = []
+            for item in processing:
+                if isinstance(item, str):
+                    result.append({"name": item})
+                elif isinstance(item, dict):
+                    if "name" not in item:
+                        logger.warning(f"Processing item missing 'name': {item}, skipping")
+                        continue
+                    result.append(item)
+                else:
+                    logger.warning(f"Invalid processing item type: {type(item)}, skipping")
+            return result
+
+        if isinstance(processing, dict):
+            # Legacy dict format: {"processor_name": {config...}, ...}
+            # Convert to list format: [{"name": "processor_name", ...config}, ...]
+            result = []
+            for name, config in processing.items():
+                if config is None:
+                    config = {}
+                if not isinstance(config, dict):
+                    logger.warning(f"Invalid config for processor '{name}': {config}, using empty dict")
+                    config = {}
+                result.append({"name": name, **config})
+            return result
+
+        logger.warning(f"Invalid processing format: {type(processing)}, returning empty list")
+        return []
+
     def load(self) -> Config:
         if not self.config_path.exists():
             raise FileNotFoundError(f"Configuration file not found: {self.config_path}\nPlease create a config file. See README.md for examples.")
@@ -118,7 +154,7 @@ class ConfigLoader:
         global_config = GlobalConfig(
             check_interval=global_data.get("check_interval", 300),
             enable_preview=global_data.get("enable_preview", True),
-            processing=global_data.get("processing", {}),
+            processing=self._normalize_processing(global_data.get("processing")),
             send_delay=global_data.get("send_delay", 1),
             domain_delay=global_data.get("domain_delay", 2.0),
         )
@@ -144,7 +180,7 @@ class ConfigLoader:
                     note=feed_data.get("note"),
                     check_interval=feed_data.get("check_interval"),
                     enable_preview=feed_data.get("enable_preview"),
-                    processing=feed_data.get("processing", {}),
+                    processing=self._normalize_processing(feed_data.get("processing")),
                     extra_flags=feed_data.get("extra_flags", {}),
                 )
 
@@ -155,7 +191,7 @@ class ConfigLoader:
                     feeds=feeds,
                     enable_preview=channel_data.get("enable_preview"),
                     check_interval=channel_data.get("check_interval"),
-                    processing=channel_data.get("processing", {}),
+                    processing=self._normalize_processing(channel_data.get("processing")),
                 )
             )
 

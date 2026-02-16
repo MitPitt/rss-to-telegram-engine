@@ -386,9 +386,9 @@ class FeedMonitor:
             if use_vid_buf:
                 data, url, filename = videos[0]
                 file = BufferedInputFile(data, filename=filename or "video.mp4")
-                await self.bot.send_video(chat_id=chat_id, video=file, caption=caption)
+                await self.bot.send_video(chat_id=chat_id, video=file, caption=caption, supports_streaming=True)
             else:
-                await self.bot.send_video(chat_id=chat_id, video=videos[0], caption=caption)
+                await self.bot.send_video(chat_id=chat_id, video=videos[0], caption=caption, supports_streaming=True)
 
     async def _send_audio_media(self, chat_id: int, audios, caption: str, use_buf: bool):
         if len(audios) > 1:

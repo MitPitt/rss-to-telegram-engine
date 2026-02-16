@@ -48,7 +48,7 @@ class FeedConfig:
     note: Optional[str] = None
     check_interval: Optional[int] = None
     enable_preview: Optional[bool] = None
-    processing: Dict[str, Dict[str, Any]] = field(default_factory=dict)
+    processing: List[Dict[str, Any]] = field(default_factory=list)
     extra_flags: Dict[str, Any] = field(default_factory=dict)
 
     def merge_with_defaults(self, defaults: "FeedConfig") -> "FeedConfig":
@@ -71,14 +71,14 @@ class ChannelConfig:
     feeds: Dict[str, FeedConfig]
     enable_preview: Optional[bool] = None
     check_interval: Optional[int] = None
-    processing: Dict[str, Dict[str, Any]] = field(default_factory=dict)
+    processing: List[Dict[str, Any]] = field(default_factory=list)
 
 
 @dataclass
 class GlobalConfig:
     check_interval: int = 300
     enable_preview: bool = True
-    processing: Dict[str, Dict[str, Any]] = field(default_factory=dict)
+    processing: List[Dict[str, Any]] = field(default_factory=list)
     send_delay: int = 1
     domain_delay: float = 2.0
 

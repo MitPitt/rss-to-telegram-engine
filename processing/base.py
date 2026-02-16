@@ -23,26 +23,35 @@ class ProcessingPipeline:
         self.processors[name] = processor
         logger.info(f"Registered processor: {name}")
 
-    async def process(self, entry: Entry, processor_configs: Dict[str, Dict[str, Any]], global_config: Dict[str, Any] = None) -> Entry:
+    async def process(self, entry: Entry, processor_configs: List[Dict[str, Any]], global_config: Dict[str, Any] = None) -> Entry:
         if not processor_configs:
             return entry
 
         result = entry
         global_config = global_config or {}
 
-        for name, proc_args in processor_configs.items():
+        for i, proc_config in enumerate(processor_configs):
             # Skip remaining processors if entry is filtered
             if result.filtered:
-                remaining = len(processor_configs) - list(processor_configs.keys()).index(name)
+                remaining = len(processor_configs) - i
                 logger.info(f"Entry filtered, skipping remaining {remaining} processors")
                 break
 
-            # Ensure proc_args is a dict
-            if proc_args is None:
+            # Extract processor name from config
+            if isinstance(proc_config, str):
+                # Simple string form: "processor_name"
+                name = proc_config
                 proc_args = {}
-            elif not isinstance(proc_args, dict):
-                logger.warning(f"Invalid config for processor '{name}': {proc_args}, using empty dict")
-                proc_args = {}
+            elif isinstance(proc_config, dict):
+                name = proc_config.get("name")
+                if not name:
+                    logger.warning(f"Processor config missing 'name' field: {proc_config}, skipping")
+                    continue
+                # Copy config without 'name' key as args
+                proc_args = {k: v for k, v in proc_config.items() if k != "name"}
+            else:
+                logger.warning(f"Invalid processor config type: {type(proc_config)}, skipping")
+                continue
 
             if name in self.processors:
                 try:
