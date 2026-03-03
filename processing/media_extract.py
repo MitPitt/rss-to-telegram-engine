@@ -408,7 +408,7 @@ class MediaExtractProcessor(Processor):
                 entry.video_buffers.append((data, url, filename))
                 successful_videos.append(url)
             elif media_type == "audio":
-                entry.audio_buffers.append((data, url, filename))
+                entry.audio_buffers.append((data, url, filename, None))
                 successful_audios.append(url)
 
         # Replace URL lists with only successfully downloaded URLs

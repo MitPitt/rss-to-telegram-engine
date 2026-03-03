@@ -1,13 +1,8 @@
 FROM ghcr.io/astral-sh/uv:bookworm-slim AS builder
 ENV UV_COMPILE_BYTECODE=1 UV_LINK_MODE=copy
-
-# Configure the Python directory so it is consistent
 ENV UV_PYTHON_INSTALL_DIR=/python
-
-# Only use the managed Python version
 ENV UV_PYTHON_PREFERENCE=only-managed
 
-# Install Python before the project for caching
 RUN uv python install 3.11
 
 WORKDIR /app
@@ -31,17 +26,12 @@ RUN apt-get update && \
     update-ca-certificates && \
     rm -rf /var/lib/apt/lists/*
 
-# Install Deno for yt-dlp JS runtime support (YouTube downloads)
-RUN curl -fsSL https://deno.land/install.sh | DENO_INSTALL=/usr/local sh
+COPY --from=denoland/deno:bin /deno /usr/local/bin/deno
 
-# Copy the Python version
 COPY --from=builder /python /python
-
-# Copy the application from the builder
 COPY --from=builder /app /app
 
 ENV PATH="/app/.venv/bin:$PATH"
-
 WORKDIR /app
 
 CMD ["python", "-m", "bot.main"]
