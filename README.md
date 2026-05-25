@@ -5,6 +5,7 @@ Bot that posts RSS feeds to Telegram. Made mostly for personal use, like an RSS-
 Real examples of `rss-to-telegram-engine` on Telegram:
 - [@hema_feed](https://t.me/hema_feed) - HEMA and Fencing sports news (youtube, reddit, telegram, vk)
 - [@photo_feed](https://t.me/photo_feed) - Photography and videography (youtube, reddit, telegram)
+- [@fontsinuse](https://t.me/fontsinuse) - Newest entries from fontsinuse.com, using a custom description processor
 
 See [Feed Examples](#feed-examples) to see screenshots of some specific examples.
 

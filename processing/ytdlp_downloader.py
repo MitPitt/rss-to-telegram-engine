@@ -24,6 +24,7 @@ class YtDlpDownloaderProcessor(Processor):
         r"https?://(?:www\.)?youtube\.com/shorts/[\w-]+",
         r"https?://(?:www\.)?youtu\.be/[\w-]+",
         r"https?://v\.redd\.it/[\w]+",
+        r"https?://(?:www\.|on\.)?soundcloud\.com/[\w-]+/[\w-]+",
     ]
 
     DEFAULT_MAX_SIZE_MB = 50
