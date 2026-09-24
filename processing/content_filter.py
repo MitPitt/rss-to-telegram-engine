@@ -52,6 +52,7 @@ class ContentFilterProcessor(Processor):
 
         match_title = config.get("match_title", True)
         match_content = config.get("match_content", True)
+        match_link = config.get("match_link", False)
         match_mode = config.get("match_mode", "any")  # 'any' or 'all'
         invert = config.get("invert", False)
         flags_str = config.get("flags", "")
@@ -63,6 +64,8 @@ class ContentFilterProcessor(Processor):
             search_texts.append(entry.title)
         if match_content and entry.content:
             search_texts.append(entry.content)
+        if match_link and entry.link:
+            search_texts.append(entry.link)
 
         if not search_texts:
             logger.debug("No text to search in entry")
