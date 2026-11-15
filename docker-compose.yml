@@ -1,6 +1,7 @@
 services:
   bot:
     build: .
+    network_mode: host
     volumes:
       - ./config:/app/config
     restart: unless-stopped
@@ -11,6 +12,10 @@ services:
       - CONFIG_PATH=${CONFIG_PATH:-./config/config.json}
       - STATE_PATH=${STATE_PATH:-./config/state.json}
       - TELEGRAM_API_SERVER_URL=${TELEGRAM_API_SERVER_URL:-}
+      - TELEGRAM_PROXY_URL=${TELEGRAM_PROXY_URL:-http://127.0.0.1:10809}
+      - HTTP_PROXY=http://127.0.0.1:10809
+      - HTTPS_PROXY=http://127.0.0.1:10809
+      - NO_PROXY=localhost,127.0.0.1,::1
     # depends_on:
     #   - telegram-api-server
 

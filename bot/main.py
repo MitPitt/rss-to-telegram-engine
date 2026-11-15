@@ -1,6 +1,7 @@
 import asyncio
 import contextlib
 import logging
+import os
 import signal
 import sys
 
@@ -80,7 +81,8 @@ class Application:
         if self.settings.telegram_api_server_url:
             session = AiohttpSession(api=TelegramAPIServer.from_base(self.settings.telegram_api_server_url, is_local=True), timeout=300)
         else:
-            session = AiohttpSession(timeout=300)
+            proxy = os.getenv("TELEGRAM_PROXY_URL", "http://127.0.0.1:10809")
+            session = AiohttpSession(timeout=300, proxy=proxy)
 
         try:
             self.bot = Bot(token=self.settings.bot_token, default=DefaultBotProperties(parse_mode=ParseMode.HTML), session=session)
